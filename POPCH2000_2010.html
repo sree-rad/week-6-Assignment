@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="./libs/d3.js"></script>
     <script src="https://d3js.org/topojson.v1.min.js"></script>
-    <title>MA Map</title>
+    <title>MA Map - Population Change between 2000 and 2010</title>
     <style>
         #tooltip {
             position: absolute;
@@ -33,10 +33,26 @@
             stroke: black;
             stroke-width: 4px;
         }
+
+        .txtAlignCenter {
+            text-align: center;
+        }
+
+        .txtAlignCenterWithBg {
+            text-align: center;
+            background-color: aqua;
+            width: 100%;
+            margin-top: 50px;
+            margin-bottom: 50px;
+        }
+        
     </style>
 </head>
 
 <body>
+    <h1 class="txtAlignCenter">Week 6 Assignment</h1>
+    <h3 class="txtAlignCenter">Sreekanth Radhakrishnan</h3>
+    <div class="txtAlignCenterWithBg"><h3>MA Map - Population Change between 2000 and 2010</h3></div>
     <div id="tooltip"></div>
     <script>
         /*-------------------------------------------------------*/
@@ -107,13 +123,13 @@
                 // if the data is scaled using log scale
             let logScale = d3.scaleLog()
                 .domain(d3.extent(geojson.features, (d) => {
-                    return d['properties']['POP2010']
+                    return d['properties']['POPCH00_10']
                 }))
 
             // if the data is scaled using linear scale
             let linearScale = d3.scaleLinear()
                 .domain(d3.extent(geojson.features, (d) => {
-                    return d['properties']['POP2010']
+                    return d['properties']['POPCH00_10']
                 }))
 
             /*-------------------------------------------------------*/
@@ -135,8 +151,7 @@
                 .enter()
                 .append("path")
                 .attr("d", d => geoPath_generator(d))
-                //.attr("fill", d => colorInterpolator(logScale(d['properties']['POP2010'])))
-                .attr("fill", d => colorInterpolator(linearScale(d['properties']['POP2010'])))
+                .attr("fill", d => colorInterpolator(linearScale(d['properties']['POPCH00_10'])))
                 .on("mouseenter", (m, d) => {
                     tooltip.transition()
                         .duration(200)

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+
+    <script src="./libs/d3.js"></script>
+    <script src="https://d3js.org/topojson.v1.min.js"></script>
+    <title>MA Map - Population of 1980</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    
+    <style>
+        #tooltip {
+            position: absolute;
+            opacity: 0;
+            top: 0;
+            left: 0;
+            width: auto;
+            padding: 10px;
+            background: white;
+            font-family: sans-serif;
+            font-size: medium;
+            border-radius: 2px;
+            line-height: 1;
+        }
+        
+        path {
+            stroke-width: 0px;
+            stroke: black;
+        }
+        
+        path:hover {
+            opacity: .6;
+            stroke: black;
+            stroke-width: 0px;
+        }
+
+        .txtAlignCenter {
+            text-align: center;
+        }
+
+        .txtAlignCenterWithBg {
+            text-align: center;
+            background-color: aqua;
+            width: 100%;
+            margin-top: 50px;
+            margin-bottom: 50px;
+        }
+
+        svg {
+            margin-left: -200px;
+            margin-right: -400px;
+        }
+        
+    </style>
+</head>
+
+<body>
+    <h1 class="txtAlignCenter">Week 6 Assignment</h1>
+    <h3 class="txtAlignCenter">Sreekanth Radhakrishnan</h3>
+    <div class="txtAlignCenterWithBg"><h3>MA Map - Colored by County</h3></div>
+    <div id="tooltip"></div>
+    <div class="container">
+        <div class="row justify-content-start">
+          <div class="col-6">
+            <div id="svg"></div>
+          </div>
+          <div id="detail-table" class="col-6"></div>
+        </div>
+      </div>
+    
+    <script>
+        /*-------------------------------------------------------*/
+        /*------------------- Window setting --------------------*/
+        /*-------------------------------------------------------*/
+        // dimension of the page
+
+
+
+        /*-------------------------------------------------------*/
+        /*-----------------parallel load data--------------------*/
+        /*-------------------------------------------------------*/
+
+        // a topojson file containing population of each town in different years
+        const MA_counties = "./data/towns.topojson"
+            // gini index per county
+        const gini_index = "./data/gini_index.csv"
+
+
+        // open both files
+        Promise.all([
+            d3.json(MA_counties),
+            d3.csv(gini_index)
+        ]).then(data => {
+            // topology data
+            const topo_data = data[0];
+            // gini index data
+            const csv_data = data[1];
+
+            /*-------------------------------------------------------*/
+            /*-----------------Topojson data handling----------------*/
+            /*-------------------------------------------------------*/
+            // if topojson file is imported we need to 
+            // convert topology data to geojson 
+            const geojson = topojson.feature(topo_data, topo_data.objects.ma);
+
+            /*-------------------------------------------------------*/
+            /*----------------------Projections----------------------*/
+            /*-------------------------------------------------------*/
+            const projections = [
+                d3.geoAzimuthalEqualArea(), //Azimuthal projections project the sphere directly onto a plane.
+                d3.geoAlbersUsa(), // USA conic projection
+                d3.geoAlbers(), // equal-area conic projection
+                d3.geoMercator(), // cylindrical projection
+                d3.geoNaturalEarth1(), // pseudocylindrical projection designed by Tom Patterson
+                d3.geoEqualEarth(), // Equal Earth projection, by Bojan Šavrič et al., 2018.
+                d3.geoConicEqualArea(), //equal-area conic projection
+                d3.geoEquirectangular(), //Cylindrical Projections
+                d3.geoOrthographic()
+            ]
+
+            /*-------------------------------------------------------*/
+            /*----------------geoPath generator----------------------*/
+            /*-------------------------------------------------------*/
+
+            const geoPath_generator = d3.geoPath()
+                .projection(projections[3].fitSize([800, 500], geojson))
+
+            /*-------------------------------------------------------*/
+            /*----------------------Color Scaling--------------------*/
+            /*-------------------------------------------------------*/
+            ////https://observablehq.com/@d3/working-with-color
+            var colorInterpolator = d3.interpolateRgbBasis(["blue", "steelblue", "green", "purple", "red"])
+                // if the data is scaled using log scale
+            let logScale = d3.scaleLog()
+                .domain(d3.extent(geojson.features, (d) => {
+                    return d['properties']['FIPS_STCO']
+                }))
+
+            // if the data is scaled using linear scale
+            let linearScale = d3.scaleLinear()
+                .domain(d3.extent(geojson.features, (d) => {
+                    return d['properties']['FIPS_STCO']
+                }))
+
+            /*-------------------------------------------------------*/
+            /*---------------------- Tooltip ------------------------*/
+            /*-------------------------------------------------------*/
+            const tooltip = d3.select("#tooltip");
+            const detail_table = d3.select("#detail-table");
+
+            /*--------------------------------------------------------*/
+            /*----------------- channelling marks --------------------*/
+            /*--------------------------------------------------------*/
+
+            // Append a SVG element to body, then append a path for the boundaries
+            let svg = d3.select("#svg").append("svg")
+                .attr("viewBox", '0 0 1300 1000')
+                ;
+
+            svg.selectAll("path")
+                .data(geojson.features)
+                .enter()
+                .append("path")
+                .attr("d", d => geoPath_generator(d))
+                .attr("fill", d => colorInterpolator(linearScale(d['properties']['FIPS_STCO'])))
+                .on("mouseenter", (m, d) => {
+
+                    detail_table.html("");
+
+                    county = csv_data.filter(function (i,n){
+                        return i.id==='0500000US' + d["properties"]["FIPS_STCO"];
+                    })
+                    .map(d => d['Geographic Area Name'])
+                    .filter((v, i, a) => a.indexOf(v) === i);
+
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9)
+                    tooltip.html(county)
+                        .style("left", m.clientX + "px")
+                        .style("top", m.clientY + "px");
+
+                        
+                        let tabletext = "<h4>"+county + "</h4><table  class='table table-bordered table-striped table-condensed' style='font-size:10px;'>"
+                            tabletext += "<tr><TH>TOWN_ID</TH><TH>TOWN</TH><TH>POP1980</TH><TH>POP1990</TH><TH>POP2000</TH><TH>POP2010</TH><TH>POPCH00_10</TH><TH>POPCH80_90</TH><TH>POPCH90_00</TH><TH>SHAPE_AREA</TH><TH>SHAPE_LEN</TH><TH>SUM_ACRES</TH><TH>SUM_SQUARE</TH></tr>";
+
+
+                            tabletext += geojson.features.filter(function (i,n){
+                            return i["properties"]["FIPS_STCO"]===d["properties"]["FIPS_STCO"];
+                        })
+                        .map(d => {
+                            return "<tr>" + 
+                                "<td>" + d["properties"]["TOWN_ID"] + "</td>"+
+                                "<td>" + d["properties"]["TOWN"] + "</td>"+
+                                "<td>" + d["properties"]["POP1980"] + "</td>"+
+                                "<td>" + d["properties"]["POP1990"] + "</td>"+
+                                "<td>" + d["properties"]["POP2000"] + "</td>"+
+                                "<td>" + d["properties"]["POP2010"] + "</td>"+
+                                "<td>" + d["properties"]["POPCH00_10"] + "</td>"+
+                                "<td>" + d["properties"]["POPCH80_90"] + "</td>"+
+                                "<td>" + d["properties"]["POPCH90_00"] + "</td>"+
+                                "<td>" + d["properties"]["SHAPE_AREA"] + "</td>"+
+                                "<td>" + d["properties"]["SHAPE_LEN"] + "</td>"+
+                                "<td>" + d["properties"]["SUM_ACRES"] + "</td>"+
+                                "<td>" + d["properties"]["SUM_SQUARE"] + "</td>"+
+                                "</tr>";
+                        });
+                        
+                        tabletext += "</table>";
+
+                    detail_table.html(tabletext);
+                })
+                .on("mousemove", (m, d) => {
+                    tooltip.style("opacity", .9)
+                })
+                .on("mouseout", (m, d) => {
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", 0)
+                })
+        })
+    </script>
+</body>
+
+</html>
