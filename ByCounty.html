@@ -11,7 +11,7 @@
 
     <script src="./libs/d3.js"></script>
     <script src="https://d3js.org/topojson.v1.min.js"></script>
-    <title>MA Map - Population of 1980</title>
+    <title>MA Map - Colored by County</title>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
@@ -188,35 +188,7 @@
                         .style("left", m.clientX + "px")
                         .style("top", m.clientY + "px");
 
-                        
-                        let tabletext = "<h4>"+county + "</h4><table  class='table table-bordered table-striped table-condensed' style='font-size:10px;'>"
-                            tabletext += "<tr><TH>TOWN_ID</TH><TH>TOWN</TH><TH>POP1980</TH><TH>POP1990</TH><TH>POP2000</TH><TH>POP2010</TH><TH>POPCH00_10</TH><TH>POPCH80_90</TH><TH>POPCH90_00</TH><TH>SHAPE_AREA</TH><TH>SHAPE_LEN</TH><TH>SUM_ACRES</TH><TH>SUM_SQUARE</TH></tr>";
-
-
-                            tabletext += geojson.features.filter(function (i,n){
-                            return i["properties"]["FIPS_STCO"]===d["properties"]["FIPS_STCO"];
-                        })
-                        .map(d => {
-                            return "<tr>" + 
-                                "<td>" + d["properties"]["TOWN_ID"] + "</td>"+
-                                "<td>" + d["properties"]["TOWN"] + "</td>"+
-                                "<td>" + d["properties"]["POP1980"] + "</td>"+
-                                "<td>" + d["properties"]["POP1990"] + "</td>"+
-                                "<td>" + d["properties"]["POP2000"] + "</td>"+
-                                "<td>" + d["properties"]["POP2010"] + "</td>"+
-                                "<td>" + d["properties"]["POPCH00_10"] + "</td>"+
-                                "<td>" + d["properties"]["POPCH80_90"] + "</td>"+
-                                "<td>" + d["properties"]["POPCH90_00"] + "</td>"+
-                                "<td>" + d["properties"]["SHAPE_AREA"] + "</td>"+
-                                "<td>" + d["properties"]["SHAPE_LEN"] + "</td>"+
-                                "<td>" + d["properties"]["SUM_ACRES"] + "</td>"+
-                                "<td>" + d["properties"]["SUM_SQUARE"] + "</td>"+
-                                "</tr>";
-                        });
-                        
-                        tabletext += "</table>";
-
-                    detail_table.html(tabletext);
+                    detail_table.html(generate_tableHTML(geojson, county, d));
                 })
                 .on("mousemove", (m, d) => {
                     tooltip.style("opacity", .9)
@@ -227,6 +199,37 @@
                         .style("opacity", 0)
                 })
         })
+
+        function generate_tableHTML(geojson, county, d) {
+            let tabletext = "<h4>"+county + "</h4><table  class='table table-bordered table-striped table-condensed' style='font-size:10px;'>"
+            tabletext += "<tr><TH>TOWN_ID</TH><TH>TOWN</TH><TH>POP1980</TH><TH>POP1990</TH><TH>POP2000</TH><TH>POP2010</TH><TH>POPCH00_10</TH><TH>POPCH80_90</TH><TH>POPCH90_00</TH><TH>SHAPE_AREA</TH><TH>SHAPE_LEN</TH><TH>SUM_ACRES</TH><TH>SUM_SQUARE</TH></tr>";
+
+
+            tabletext += geojson.features.filter(function (i,n){
+                return i["properties"]["FIPS_STCO"]===d["properties"]["FIPS_STCO"];
+            })
+            .map(d => {
+                return "<tr>" + 
+                    "<td>" + d["properties"]["TOWN_ID"] + "</td>"+
+                    "<td>" + d["properties"]["TOWN"] + "</td>"+
+                    "<td>" + d["properties"]["POP1980"] + "</td>"+
+                    "<td>" + d["properties"]["POP1990"] + "</td>"+
+                    "<td>" + d["properties"]["POP2000"] + "</td>"+
+                    "<td>" + d["properties"]["POP2010"] + "</td>"+
+                    "<td>" + d["properties"]["POPCH00_10"] + "</td>"+
+                    "<td>" + d["properties"]["POPCH80_90"] + "</td>"+
+                    "<td>" + d["properties"]["POPCH90_00"] + "</td>"+
+                    "<td>" + d["properties"]["SHAPE_AREA"] + "</td>"+
+                    "<td>" + d["properties"]["SHAPE_LEN"] + "</td>"+
+                    "<td>" + d["properties"]["SUM_ACRES"] + "</td>"+
+                    "<td>" + d["properties"]["SUM_SQUARE"] + "</td>"+
+                    "</tr>";
+            });
+            
+            tabletext += "</table>";
+
+            return tabletext;
+        }
     </script>
 </body>
 
